@@ -1,0 +1,5 @@
+D:/DME/build/CMakeFiles/dsa_engine.dir
+D:/DME/build/CMakeFiles/dsa_tests.dir
+D:/DME/build/CMakeFiles/RUN_TESTS.dir
+D:/DME/build/CMakeFiles/ALL_BUILD.dir
+D:/DME/build/CMakeFiles/ZERO_CHECK.dir

@@ -86,9 +86,19 @@ enable_testing()
 
 file(GLOB TEST_SOURCES ${TEST_DIR}/*.cpp)
 
-if(TEST_SOURCES)
+# Filter to only include test files that define main()
+set(VALID_TEST_SOURCES "")
+foreach(src ${TEST_SOURCES})
+    file(READ ${src} _content)
+    string(FIND "${_content}" "int main" _pos)
+    if(NOT _pos EQUAL -1)
+        list(APPEND VALID_TEST_SOURCES ${src})
+    endif()
+endforeach()
+
+if(VALID_TEST_SOURCES)
     add_executable(dsa_tests
-        ${TEST_SOURCES}
+        ${VALID_TEST_SOURCES}
         ${CORE_SOURCES}
         ${DS_SOURCES}
         ${ALGO_SOURCES}
