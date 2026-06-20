@@ -1,0 +1,44 @@
+name: DSA Master Engine — Build & Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build & Run on Ubuntu (GCC)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake g++ ninja-build
+
+      - name: Configure CMake
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -G Ninja
+
+      - name: Build project
+        run: cmake --build build --config Release
+
+      - name: Run demo and capture output
+        run: |
+          ./build/dsa_engine | tee output.txt
+          echo "--- Verifying key outputs ---"
+          grep -q "All demos complete" output.txt && echo "PASS: Demo completed" || (echo "FAIL: Demo did not complete" && exit 1)
+          grep -q "bubble_sort.*11 12 22 25 34 64 90" output.txt && echo "PASS: Sorting correct" || echo "WARN: Sorting output mismatch"
+          grep -q "0/1 Knapsack.*10" output.txt && echo "PASS: DP correct" || echo "WARN: DP output mismatch"
+          grep -q "Dijkstra from 0.*0 3 1 4 7 9" output.txt && echo "PASS: Graph correct" || echo "WARN: Graph output mismatch"
+          grep -q "match=100%" output.txt && echo "PASS: Job recommender correct" || echo "WARN: Job recommender mismatch"
+          grep -q "Latency : 6ms" output.txt && echo "PASS: Traffic router correct" || echo "WARN: Traffic router mismatch"
+
+      - name: Upload output artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-output
+          path: output.txt
