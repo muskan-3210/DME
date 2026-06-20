@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DSA Master Engine</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #c9d1d9; }
+
+  header {
+    background: linear-gradient(135deg, #0f3460 0%, #1a1a2e 100%);
+    padding: 32px 40px 24px;
+    border-bottom: 3px solid #e94560;
+  }
+  header h1 { font-size: 2rem; color: #fff; letter-spacing: 1px; }
+  header p  { color: #aaa; margin-top: 6px; font-size: 0.95rem; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 0.78rem; font-weight: 600; margin-top: 10px;
+    background: #238636; color: #fff;
+  }
+
+  nav {
+    display: flex; gap: 12px; padding: 18px 40px;
+    background: #161b22; border-bottom: 1px solid #30363d; flex-wrap: wrap;
+  }
+  nav button {
+    padding: 7px 18px; border-radius: 6px; border: 1px solid #30363d;
+    background: #21262d; color: #c9d1d9; cursor: pointer;
+    font-size: 0.88rem; transition: all .15s;
+  }
+  nav button:hover, nav button.active {
+    background: #0f3460; border-color: #e94560; color: #fff;
+  }
+  #run-btn {
+    margin-left: auto; background: #e94560; border-color: #e94560;
+    color: #fff; font-weight: 600; padding: 7px 22px;
+  }
+  #run-btn:hover { background: #c73652; }
+  #run-btn:disabled { background: #555; border-color: #555; cursor: not-allowed; }
+
+  main { padding: 28px 40px; max-width: 1200px; margin: 0 auto; }
+
+  .section-card {
+    background: #161b22; border: 1px solid #30363d;
+    border-radius: 10px; margin-bottom: 20px; overflow: hidden;
+  }
+  .section-card h2 {
+    padding: 14px 20px; background: #0f3460;
+    color: #fff; font-size: 1rem; letter-spacing: 0.5px;
+    border-bottom: 2px solid #e94560;
+  }
+  .section-card pre {
+    padding: 18px 20px; font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.85rem; line-height: 1.7; white-space: pre-wrap; word-break: break-word;
+  }
+
+  .pass  { color: #3fb950; font-weight: 600; }
+  .label { color: #58a6ff; }
+  .value { color: #e3b341; }
+  .sep   { color: #e94560; }
+
+  #status {
+    padding: 10px 20px; background: #161b22;
+    border: 1px solid #30363d; border-radius: 8px;
+    margin-bottom: 20px; font-size: 0.88rem; display: none;
+  }
+  #status.running { color: #e3b341; }
+  #status.done    { color: #3fb950; }
+  #status.error   { color: #f85149; }
+
+  .spinner {
+    display: inline-block; width: 12px; height: 12px;
+    border: 2px solid #e3b341; border-top-color: transparent;
+    border-radius: 50%; animation: spin .7s linear infinite;
+    margin-right: 8px; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer {
+    text-align: center; padding: 24px; color: #555;
+    font-size: 0.82rem; border-top: 1px solid #21262d; margin-top: 40px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DSA Master Engine</h1>
+  <p>Advanced C++ system &mdash; 20+ data structures &bull; 30+ algorithms &bull; 4 simulations</p>
+  <span class="badge">C++17 &nbsp;|&nbsp; CMake &nbsp;|&nbsp; FAANG-level</span>
+</header>
+
+<nav>
+  <button class="active" id="btn-all" onclick="showAll()">All</button>
+  <button onclick="showSection('DATA STRUCTURES')">Data Structures</button>
+  <button onclick="showSection('ALGORITHMS')">Algorithms</button>
+  <button onclick="showSection('CORE SYSTEMS')">Core Systems</button>
+  <button onclick="showSection('SIMULATIONS')">Simulations</button>
+  <button id="run-btn" onclick="runEngine()">&#9654; Run Engine</button>
+</nav>
+
+<main>
+  <div id="status"></div>
+  <div id="output"></div>
+</main>
+
+<footer>DSA Master Engine &mdash; Built with engineering-first thinking &mdash; 2026</footer>
+
+<script>
+var allSections = [];
+
+function escapeHtml(text) {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function colorize(text) {
+  text = escapeHtml(text);
+  // section dividers
+  text = text.replace(/--- .+ ---/g, function(m) {
+    return '<span class="sep">' + m + '</span>';
+  });
+  // PASS lines
+  text = text.replace(/PASS:[^\n]*/g, function(m) {
+    return '<span class="pass">' + m + '</span>';
+  });
+  // match=100%
+  text = text.replace(/match=\d+%/g, function(m) {
+    return '<span class="pass">' + m + '</span>';
+  });
+  // score=60.0
+  text = text.replace(/score=[\d.]+/g, function(m) {
+    return '<span class="value">' + m + '</span>';
+  });
+  // dollar amounts
+  text = text.replace(/\$\d+/g, function(m) {
+    return '<span class="value">' + m + '</span>';
+  });
+  // expect N
+  text = text.replace(/expect \d+/g, function(m) {
+    return '<span class="label">' + m + '</span>';
+  });
+  return text;
+}
+
+function setActive(btn) {
+  document.querySelectorAll('nav button').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  if (btn) btn.classList.add('active');
+}
+
+function render(sections) {
+  var out = document.getElementById('output');
+  out.innerHTML = '';
+  sections.forEach(function(s) {
+    var card = document.createElement('div');
+    card.className = 'section-card';
+    card.dataset.section = s.title;
+    card.innerHTML = '<h2>' + s.title + '</h2><pre>' + colorize(s.content) + '</pre>';
+    out.appendChild(card);
+  });
+}
+
+function showAll() {
+  setActive(document.getElementById('btn-all'));
+  render(allSections);
+}
+
+function showSection(name) {
+  var btns = document.querySelectorAll('nav button');
+  btns.forEach(function(b) {
+    if (b.textContent.trim() === name ||
+        (name === 'DATA STRUCTURES' && b.textContent.trim() === 'Data Structures') ||
+        (name === 'ALGORITHMS'      && b.textContent.trim() === 'Algorithms')      ||
+        (name === 'CORE SYSTEMS'    && b.textContent.trim() === 'Core Systems')    ||
+        (name === 'SIMULATIONS'     && b.textContent.trim() === 'Simulations')) {
+      b.classList.add('active');
+    } else {
+      b.classList.remove('active');
+    }
+  });
+  render(allSections.filter(function(s) { return s.title === name; }));
+}
+
+function setStatus(msg, cls) {
+  var el = document.getElementById('status');
+  el.style.display = 'block';
+  el.className = cls;
+  el.innerHTML = msg;
+}
+
+function runEngine() {
+  var btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+  setStatus('<span class="spinner"></span> Running DSA Master Engine...', 'running');
+
+  fetch('/run')
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data.error) {
+        setStatus('Error: ' + data.error, 'error');
+      } else {
+        allSections = data.sections;
+        render(allSections);
+        setStatus('All demos completed successfully &#10003;', 'done');
+      }
+      btn.disabled = false;
+      btn.innerHTML = '&#9654; Run Engine';
+    })
+    .catch(function(e) {
+      setStatus('Failed to connect: ' + e.message, 'error');
+      btn.disabled = false;
+      btn.innerHTML = '&#9654; Run Engine';
+    });
+}
+
+window.onload = runEngine;
+</script>
+</body>
+</html>
